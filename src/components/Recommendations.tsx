@@ -16,7 +16,11 @@ export function Recommendations({ recommendations }: RecommendationsProps) {
   const colorFolder = bodyAnalysis.colorType;
 
   // Базовый префикс для статических файлов с учетом Vite base (работает и локально, и на проде)
-  const baseUrl = import.meta.env.BASE_URL || '/';
+  const baseUrl =
+    (typeof import.meta !== 'undefined' &&
+      (import.meta as any).env &&
+      (import.meta as any).env.BASE_URL) ||
+    '/';
 
   // Кандидаты: 1.jpg–5.jpg внутри соответствующей папки
   // public/models/female/spring/1.jpg, 2.jpg, ...
