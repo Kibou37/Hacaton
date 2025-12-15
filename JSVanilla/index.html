@@ -56,6 +56,70 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        .model-card {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        .model-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .model-image-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .model-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+            object-fit: cover;
+        }
+        .model-carousel-button {
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 999px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #4b5563;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.15s ease, transform 0.15s ease;
+        }
+        .model-carousel-button:hover {
+            background: #eef2ff;
+            transform: scale(1.05);
+        }
+        .model-carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .model-carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            border: none;
+            background-color: #d1d5db;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.15s ease, width 0.15s ease;
+        }
+        .model-carousel-dot.active {
+            background-color: #6366f1;
+            transform: scale(1.1);
+            width: 14px;
+        }
         ul {
             list-style-type: disc;
             padding-left: 20px;
@@ -250,6 +314,8 @@
                         ${clothing.tips.map(tip => `<li>${tip}</li>`).join('')}
                     </ul>
                 </div>
+
+                <div id="modelCarouselContainer"></div>
             `;
             
             const resultsDiv = document.getElementById('results');
@@ -258,6 +324,122 @@
             
             // Прокручиваем к результатам
             resultsDiv.scrollIntoView({ behavior: 'smooth' });
+
+            // Рендерим карусель образов
+            renderModelCarousel(analysis);
+        }
+
+        /**
+         * Рендерит карусель моделей по полу и цветотипу.
+         * Ожидаемая структура папок (относительно JSVanilla/index.html):
+         * ../public/models/female/spring/1.jpg, 2.jpg, ...
+         * ../public/models/male/winter/1.jpg, ...
+         */
+        function renderModelCarousel(analysis) {
+            const container = document.getElementById('modelCarouselContainer');
+            if (!container) return;
+
+            const genderFolder = analysis.gender === 'male' ? 'male' : 'female';
+            const colorFolder = analysis.colorType; // spring/summer/autumn/winter
+
+            // Базовый путь к общим картинкам относительно JSVanilla/index.html
+            const basePath = '../public/models';
+
+            const candidates = ['1', '2', '3', '4', '5'].map(
+                num => `${basePath}/${genderFolder}/${colorFolder}/${num}.jpg`
+            );
+
+            const available = [];
+            let checked = 0;
+            const total = candidates.length;
+
+            function tryBuildCarousel() {
+                if (checked < total) return;
+
+                if (!available.length) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let currentIndex = 0;
+
+                container.innerHTML = `
+                    <div class="model-card">
+                        <h3>Примеры образов для вашего цветотипа</h3>
+                        <div class="model-image-wrapper">
+                            ${available.length > 1 ? `
+                                <button type="button" class="model-carousel-button" data-direction="prev">‹</button>
+                            ` : ''}
+
+                            <img src="${available[0]}" alt="Образ для цветотипа" class="model-image" />
+
+                            ${available.length > 1 ? `
+                                <button type="button" class="model-carousel-button" data-direction="next">›</button>
+                            ` : ''}
+                        </div>
+                        ${available.length > 1 ? `
+                            <div class="model-carousel-dots">
+                                ${available.map((_, index) => `
+                                    <button type="button" class="model-carousel-dot${index === 0 ? ' active' : ''}" data-index="${index}"></button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                const imgEl = container.querySelector('.model-image');
+                const prevBtn = container.querySelector('[data-direction="prev"]');
+                const nextBtn = container.querySelector('[data-direction="next"]');
+                const dots = Array.from(container.querySelectorAll('.model-carousel-dot'));
+
+                function updateView() {
+                    if (!imgEl) return;
+                    imgEl.src = available[currentIndex];
+                    dots.forEach((dot, index) => {
+                        if (index === currentIndex) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+                }
+
+                if (prevBtn && nextBtn) {
+                    prevBtn.addEventListener('click', function () {
+                        currentIndex = currentIndex === 0 ? available.length - 1 : currentIndex - 1;
+                        updateView();
+                    });
+
+                    nextBtn.addEventListener('click', function () {
+                        currentIndex = currentIndex === available.length - 1 ? 0 : currentIndex + 1;
+                        updateView();
+                    });
+                }
+
+                dots.forEach(dot => {
+                    dot.addEventListener('click', function () {
+                        const idx = parseInt(dot.getAttribute('data-index'), 10);
+                        if (!isNaN(idx)) {
+                            currentIndex = idx;
+                            updateView();
+                        }
+                    });
+                });
+            }
+
+            candidates.forEach(src => {
+                const img = new Image();
+                img.onload = function () {
+                    available.push(src);
+                    checked++;
+                    tryBuildCarousel();
+                };
+                img.onerror = function () {
+                    checked++;
+                    tryBuildCarousel();
+                };
+                img.src = src;
+            });
         }
     </script>
 </body>
