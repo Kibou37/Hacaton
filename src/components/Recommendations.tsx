@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Recommendations as RecommendationsType } from '../types';
 import './Recommendations.css';
 
@@ -7,6 +8,45 @@ interface RecommendationsProps {
 
 export function Recommendations({ recommendations }: RecommendationsProps) {
   const { bodyAnalysis, clothing } = recommendations;
+  const [availableImages, setAvailableImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [checkedImagesCount, setCheckedImagesCount] = useState(0);
+
+  const genderFolder = bodyAnalysis.gender === 'male' ? 'male' : 'female';
+  const colorFolder = bodyAnalysis.colorType;
+
+  // Базовый префикс для статических файлов с учетом Vite base (работает и локально, и на проде)
+  const baseUrl = import.meta.env.BASE_URL || '/';
+
+  // Кандидаты: 1.jpg–5.jpg внутри соответствующей папки
+  // public/models/female/spring/1.jpg, 2.jpg, ...
+  const candidateSources = ['1', '2', '3', '4', '5'].map((num) => {
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    return `${normalizedBase}models/${genderFolder}/${colorFolder}/${num}.jpg`;
+  });
+
+  useEffect(() => {
+    setAvailableImages([]);
+    setCurrentImageIndex(0);
+    setCheckedImagesCount(0);
+  }, [genderFolder, colorFolder]);
+
+  const showCarousel =
+    availableImages.length > 0 || checkedImagesCount === 0; // до проверки показываем блок
+
+  const handlePrev = () => {
+    if (availableImages.length === 0) return;
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? availableImages.length - 1 : prev - 1
+    );
+  };
+
+  const handleNext = () => {
+    if (availableImages.length === 0) return;
+    setCurrentImageIndex((prev) =>
+      prev === availableImages.length - 1 ? 0 : prev + 1
+    );
+  };
 
   const getColorTypeName = (colorType: string) => {
     const names: Record<string, string> = {
@@ -66,6 +106,76 @@ export function Recommendations({ recommendations }: RecommendationsProps) {
 
       <div className="clothing-section">
         <h2>Рекомендации по одежде</h2>
+
+        {/* Скрытые картинки-проверки, чтобы понять, какие реально существуют */}
+        <div style={{ display: 'none' }}>
+          {candidateSources.map((src) => (
+            <img
+              key={src}
+              src={src}
+              onLoad={() => {
+                setAvailableImages((prev) =>
+                  prev.includes(src) ? prev : [...prev, src]
+                );
+                setCheckedImagesCount((prev) => prev + 1);
+              }}
+              onError={() => {
+                setCheckedImagesCount((prev) => prev + 1);
+              }}
+            />
+          ))}
+        </div>
+
+        {showCarousel && availableImages.length > 0 && (
+          <div className="recommendation-card model-image-card">
+            <h3>Примеры образов для вашего цветотипа</h3>
+            <div className="model-image-wrapper">
+              {availableImages.length > 1 && (
+                <button
+                  type="button"
+                  className="model-carousel-button model-carousel-button-prev"
+                  onClick={handlePrev}
+                  aria-label="Предыдущая модель"
+                >
+                  ‹
+                </button>
+              )}
+
+              <img
+                src={availableImages[currentImageIndex]}
+                alt={`Модель для цветотипа ${getColorTypeName(bodyAnalysis.colorType)}`}
+                className="model-image"
+              />
+
+              {availableImages.length > 1 && (
+                <button
+                  type="button"
+                  className="model-carousel-button model-carousel-button-next"
+                  onClick={handleNext}
+                  aria-label="Следующая модель"
+                >
+                  ›
+                </button>
+              )}
+            </div>
+
+            {availableImages.length > 1 && (
+              <div className="model-carousel-dots">
+                {availableImages.map((src, index) => (
+                  <button
+                    key={src}
+                    type="button"
+                    className={`model-carousel-dot${
+                      index === currentImageIndex ? ' active' : ''
+                    }`}
+                    onClick={() => setCurrentImageIndex(index)}
+                    aria-label={`Показать модель ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="recommendation-card">
           <h3>Типы одежды</h3>

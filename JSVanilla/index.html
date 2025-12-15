@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест логики рекомендаций</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .results h2 {
+            color: #333;
+        }
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .color-swatch {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест логики рекомендаций по одежде</h1>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label>Пол:</label>
+            <label><input type="radio" name="gender" value="female" checked> Женский</label>
+            <label><input type="radio" name="gender" value="male"> Мужской</label>
+        </div>
+        
+        <div class="form-group">
+            <label for="height">Рост (см):</label>
+            <input type="number" id="height" name="height" value="165" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="hairColor">Цвет волос:</label>
+            <select id="hairColor" name="hairColor" required>
+                <option value="blonde">Светлый</option>
+                <option value="brown" selected>Каштановый</option>
+                <option value="black">Темный/Черный</option>
+                <option value="red">Рыжий</option>
+                <option value="gray">Седой</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="eyeColor">Цвет глаз:</label>
+            <select id="eyeColor" name="eyeColor" required>
+                <option value="blue">Голубой</option>
+                <option value="green">Зеленый</option>
+                <option value="brown" selected>Карий</option>
+                <option value="gray">Серый</option>
+                <option value="hazel">Ореховый</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="skinTone">Оттенок кожи:</label>
+            <select id="skinTone" name="skinTone" required>
+                <option value="light">Светлый</option>
+                <option value="medium" selected>Средний</option>
+                <option value="olive">Оливковый</option>
+                <option value="tan">Загорелый</option>
+                <option value="dark">Темный</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="chest">ОГ - Обхват груди (см):</label>
+            <input type="number" id="chest" name="chest" value="90" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="waist">ОТ - Обхват талии (см):</label>
+            <input type="number" id="waist" name="waist" value="70" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="hips">ОБ - Обхват бедер (см):</label>
+            <input type="number" id="hips" name="hips" value="95" required>
+        </div>
+        
+        <button type="submit">Получить рекомендации</button>
+    </form>
+    
+    <div id="results" class="results" style="display: none;"></div>
+    
+    <!-- Подключаем логику -->
+    <script src="fashion-logic.js"></script>
+    
+    <script>
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Собираем данные из формы
+            const formData = {
+                gender: document.querySelector('[name="gender"]:checked').value,
+                height: parseInt(document.getElementById('height').value),
+                hairColor: document.getElementById('hairColor').value,
+                eyeColor: document.getElementById('eyeColor').value,
+                skinTone: document.getElementById('skinTone').value,
+                chest: parseInt(document.getElementById('chest').value),
+                waist: parseInt(document.getElementById('waist').value),
+                hips: parseInt(document.getElementById('hips').value)
+            };
+            
+            try {
+                // Вызываем функцию анализа
+                const result = getFashionRecommendations(formData);
+                
+                // Отображаем результаты
+                displayResults(result);
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+                console.error(error);
+            }
+        });
+        
+        function displayResults(result) {
+            const analysis = result.bodyAnalysis;
+            const clothing = result.clothing;
+            
+            // Названия для отображения
+            const bodyTypeNames = {
+                'hourglass': 'Песочные часы',
+                'rectangle': 'Прямоугольник',
+                'triangle': analysis.gender === 'male' ? 'Треугольник' : 'Груша (Треугольник)',
+                'inverted-triangle': analysis.gender === 'male' ? 'Перевернутый треугольник (Атлетическая)' : 'Перевернутый треугольник',
+                'apple': 'Яблоко'
+            };
+            
+            const sizeNames = {
+                'xs': 'XS',
+                's': 'S',
+                'm': 'M',
+                'l': 'L',
+                'xl': 'XL',
+                'xxl': 'XXL'
+            };
+            
+            const colorTypeNames = {
+                'spring': 'Весна',
+                'summer': 'Лето',
+                'autumn': 'Осень',
+                'winter': 'Зима'
+            };
+            
+            const html = `
+                <h2>Анализ вашей фигуры</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Тип фигуры</h3>
+                    <p><strong>${bodyTypeNames[analysis.bodyType]}</strong></p>
+                    <p>${analysis.description}</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Полнотная группа</h3>
+                    <p><strong>${sizeNames[analysis.bodySize]}</strong></p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Цветотип внешности</h3>
+                    <p><strong>${colorTypeNames[analysis.colorType]}</strong></p>
+                </div>
+                
+                <h2>Рекомендации по одежде</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Типы одежды</h3>
+                    <ul>
+                        ${clothing.clothingTypes.map(type => `<li>${type}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Рекомендуемые силуэты</h3>
+                    <ul>
+                        ${clothing.silhouettes.map(sil => `<li>${sil}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Длина рукавов</h3>
+                    <p>${clothing.shoulderLength}</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Посадка по талии</h3>
+                    <p>${clothing.waistLength}</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Рекомендуемая цветовая палитра</h3>
+                    <div class="color-palette">
+                        ${clothing.colorPalette.map(color => 
+                            `<div class="color-swatch" style="background-color: ${color};" title="${color}"></div>`
+                        ).join('')}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3>Советы</h3>
+                    <ul>
+                        ${clothing.tips.map(tip => `<li>${tip}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            // Прокручиваем к результатам
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
+
